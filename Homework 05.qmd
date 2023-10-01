@@ -1,0 +1,139 @@
+---
+title: "Homework 04"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+## Question 1
+
+```{r}
+#| message: false
+library(tidyverse)
+# Read in the data 
+exercise_data <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/visualize_data.csv")
+glimpse(exercise_data)
+```
+
+I would expect that people who exercise more will have a lower BMI.
+
+```{r}
+cor(exercise_data$Exercise, exercise_data$BMI)
+```
+
+Since the correlation is a negative number that is relatively close to 0, it indicates that exercise and BMI have a slight negative correlation. As the amount of exercise increases for people, their BMI decreases.
+
+```{r}
+ggplot(exercise_data,
+       aes(x = Exercise, y = BMI)) +
+      geom_point()
+```
+
+## Question 2
+
+I installed the package "causact" in the console.
+
+```{r}
+#| message: false
+library(causact)
+glimpse(corruptDF)
+```
+
+```{r}
+?corruptDF
+```
+
+CPI2017 is an index on a scale of 0-100 that indicated how corrupt people viewed the country in 2017 (0 is the most corrupt and 100 is very clean). HDI2017 is an index that measures the level of human development of 2017 using the country's average longetivity, education, and income in 2017.
+
+## Question 3
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017)) +
+    geom_point()
+```
+
+I see a positive correlation between HDI2017 and CPI2017, which indicates that as the human development of a country increases (human development index score increases), the country is considered less corrupt (corrupt perception index score increases). It also seems like a slight exponential function.
+
+## Question 4
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017)) +
+    geom_point()+
+    geom_smooth()
+```
+
+Without specifying, in this case the default method was method loess.
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017)) +
+    geom_point()+
+    geom_smooth(method = "lm")
+```
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017)) +
+    geom_point()+
+    geom_smooth(method = "gam")
+```
+
+The lm method created a straight line of regression (a linear model), while the gam method created a curved exponential line following the flow of the points. In this case, I prefer the gam method because it demonstrates the exponential pattern (which gives more critical information about the data) that could not be displayed by the lm method.
+
+## Question 5
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017, fill = region, color = region)) +
+    geom_point()+
+    geom_smooth(method = "gam")
+```
+
+The plot is too cluttered and the colors overlap too much, hindering my ability to recognize a pattern.
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017)) +
+    geom_point(color = "blue")+
+    geom_smooth(method = "gam", color = "red") +
+  facet_wrap(vars(region))
+```
+
+## Question 6
+
+```{r}
+#| message: false
+library(scales)
+
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017, fill = region, color = region)) +
+    geom_point()+
+    geom_smooth(method = "gam") +
+  scale_x_reverse()
+```
+
+## Question 7
+
+```{r}
+ggplot(corruptDF,
+       aes(x = HDI2017, y = CPI2017, fill = region, color = region)) +
+    geom_point()+
+    geom_smooth(method = "lm") +
+  scale_x_log10() +
+  labs(title = "Relationship Between the Corruption Perceptions Index  
+and Human Developmen Index", 
+       subtitle = "for 2017", 
+       caption = "Data of 174 countries from Transparency International and Human Development Reports")
+```
+
+## Question 8
+
+```{r}
+library(here)
+ggsave(here("Homework","homework_5_figure.png"))
+```
+
+I saved the plot as a png image to a folder on my desktop where I keep all my homework.

@@ -1,0 +1,140 @@
+---
+title: "Homework 03"
+format: html
+Author: Devica Shah
+embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+mario_kart <- read_csv("https://raw.githubusercontent.com/NicolasRestrep/223_course/main/Data/world_records.csv")
+```
+
+## Question 1
+
+```{r}
+three_laps <- mario_kart %>% 
+  filter(type == "Three Lap")
+```
+
+I kept only the records for Three Laps as it said to do in the Homework.
+
+```{r}
+without_Rainbow_Road <- three_laps %>%
+  filter(track != "Rainbow Road")
+```
+
+This is how I would create a dataset without records from the Rainbow Road Track. I used the "!=" logical operator to include all the tracks that do not equal "Rainbow Road" and saved them to a dataset titled "without_Rainbow_Road".
+
+```{r}
+only_Rainbow_Road <- three_laps %>%
+  filter(track == "Rainbow Road")
+```
+
+I saved all the records on the track "Rainbow Road" to a dataset titled "only_Rainbow_Road".
+
+## Question 2
+
+```{r}
+summarize_Rainbow_Road <- only_Rainbow_Road %>%
+  summarize(mean = mean (time, na.rm = TRUE),
+            std_dev = sd(time, na.rm = TRUE))
+summarize_Rainbow_Road  
+```
+
+```{r}
+summarize_three_laps <- three_laps %>%
+  summarize(mean = mean (time, na.rm = TRUE),
+            std_dev = sd(time, na.rm = TRUE))
+summarize_three_laps
+```
+
+The rainbow road tracks has a higher average in time than the average time of all the tracks. Also, the rainbow road has a higher standard deviation than all the tracks, so the time data is more spread out for the rainbow road track.
+
+## Question 3
+
+```{r}
+summarize_track <- three_laps %>%
+  group_by(track) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+summarize_track
+```
+
+Toad's Turnpike has the most records established.
+
+## Question 4
+
+```{r}
+summarize_driver <- three_laps %>%
+  group_by(player,track) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+summarize_driver
+```
+
+The driver Penev had 26 records on Choco Mountain.
+
+## Question 5
+
+```{r}
+average_track_time <- three_laps %>%
+  group_by(track) %>%
+  summarize(mean = mean(time, na.rum = TRUE)) %>%
+  arrange(desc(mean))
+average_track_time
+```
+
+Rainbow Road has the highest average time.
+
+```{r}
+three_laps_copy <- three_laps %>% 
+  group_by(track) %>% 
+  arrange(time) %>% 
+  slice(1)  %>% 
+  arrange(time) %>% 
+  select(track, time)
+
+three_laps_copy
+```
+
+## Question 6
+
+```{r}
+three_laps <- three_laps %>%
+ mutate(longer_than_100 = if_else(record_duration > 100, 1L, 0L))
+
+glimpse(three_laps)
+```
+
+```{r}
+player_records <- three_laps %>%
+  group_by(player) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+player_records
+```
+
+MR had the most long duration records.
+
+## Question 7
+
+```{r}
+drivers <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/drivers.csv")
+```
+
+```{r}
+
+drivers1 <- drivers %>%
+   select(player,nation) %>%
+   group_by(player) %>%
+   slice_head(n = 1)
+
+joined_drivers <-  left_join(three_laps, drivers1)
+```
+
+```{r}
+ggplot(joined_drivers,
+       aes(x = nation)) + geom_bar() 
+```

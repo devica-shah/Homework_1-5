@@ -1,0 +1,99 @@
+---
+title: "Homework 1"
+author: "Devica Shah"
+format: html
+embed-resources: true
+editor: visual
+---
+
+### Question 1
+
+I installed the three packages. But I did it in the console as I was instructed.
+
+### Question 2
+
+```{r}
+library(causact)
+library(dplyr)
+library(igraph)
+
+df <- dplyr::as_data_frame(x = c(1,2,3))
+
+glimpse(df)
+
+n_distinct(x <- c(5,6,2,7,9,1))
+```
+
+In the initial call of "as_data_frame" which was "df \<- as_data_frame(x = c(1,2,3))", it produced an error because both the dplyr and igraph package have as_data_frame functions. Therefore the replaced line of code specifies a call to the as_data_frame function in the dplyr package to avoid errors.
+
+When I ran the initial code it may have used the igraph function because of the order I loaded the packages. The igraph package was loaded after the dplyr package, so the igraph function may have overriden the dplyr one.
+
+### Question 3
+
+```{r}
+?n_distinct()
+```
+
+I used the "?" to show the document of the help file for the n_distinct() function.
+
+The n_distinct() function the number of distinct elements in a set of values or multiple sets of values.
+
+### Question 4
+
+```{r}
+glimpse(baseballData)
+```
+
+I ran the glimpse function to look at the object baseballData and an organized array of information appeared.
+
+The dataset has 12,145 rows and 5 columns.
+
+The Home column has a "fct" variable which stands for factor.
+
+The HomeScore column has an "int" variable which stands for integer.
+
+### Question 5
+
+```{r}
+baseballData[1,]
+```
+
+After running the code, one row of the baseballData object appeared. It represents information about one baseball game.
+
+```{r}
+baseballData[,2:3] %>% head()
+```
+
+The two columns (column 2 and column 3) represent the acronym names of the home team and visitor team, respectively.
+
+### Question 6
+
+```{r}
+name <-
+  c(
+    "Wayne Gretzky",
+    "Gordie Howe",
+    "Jaromir Jagr",
+    "Brett Hull",
+    "Marcel Dionne",
+    "Phil Esposito" ,
+    "Mike Gartner",
+    "Alex Ovechkin",
+    "Mark Messier" ,
+    "Steve Yzerman"
+  )
+
+goals <- c(894, 801, 766, 741, 731, 717, 708, 700, 694, 692)
+
+year_started <- c(1979, 1946, 1990, 1986, 1971, 1963, 1979, 2005, 1979, 1983)
+
+hockeyPlayers <- tibble(
+  name = name,
+  goals = goals,
+  year_started = year_started
+)
+
+glimpse(hockeyPlayers)
+```
+
+I created the dataframe titled hockeyPlayers using the tibble function. At first I was very confused but eventually after troubleshooting got it to work. I thought that each variable name needed to be in the format \<name\>, however realized that I need to take out the "\<\>".

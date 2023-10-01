@@ -1,0 +1,74 @@
+---
+title: "Homework 04"
+format: html
+editor: visual
+embed-resources: true
+author: Devica Shah
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+```
+
+## Question 1
+
+```{r}
+#| message: false
+salaries <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/nfl_salaries.csv")
+```
+
+## Question 2
+
+```{r}
+salaries_longer <- salaries %>% 
+  pivot_longer(names_to = "position", 
+               values_to = "salary", 
+               cols = -year)
+salaries_longer
+```
+
+## Question 3
+
+```{r}
+only_quarterbacks <- salaries_longer %>% 
+  filter(position == "Quarterback") %>% 
+  mutate(salary = salary/1000000)
+
+ggplot(only_quarterbacks, 
+       aes(x = salary)) +
+      geom_histogram(binwidth = 1, fill = "blue", color = "white") +
+    facet_wrap(~year) +
+    labs(x = "Salary (in millions)", y = "Count")
+```
+
+I noticed that more quarterbacks are receiving salaries over 1 million USD in 2018 than in 2011. I also noticed that the salaries of quarterbacks are generally around 1 million to 5 million USD over the years. However as the years go from 2011 to 2018, more football players are passing a 10 million USD salary.
+
+## Question 4
+
+```{r}
+average_salary <- salaries_longer %>% 
+  group_by(position,year) %>% 
+  summarize(mean = mean(salary, na.rm = TRUE))
+average_salary
+```
+
+I used "na.rm = TRUE" to get rid of NAs.
+
+## Question 5
+
+```{r}
+salaries_tidied <- average_salary %>% 
+  mutate(mean = mean/1000000)
+
+ggplot(salaries_tidied,
+       aes(x = year, y = mean)) +
+      geom_line() +
+      geom_point() +
+    facet_wrap(~position) +
+  labs(x = "Year", y = "Salary (in millions)")
+```
+
+I used the facet wrap to make a line graph for each position.
+
+The salary of the Special Teamer position has remained steadily the same over the years from 2011 to 2018. The salary of the wide receiver position has increased steadily over the years from 2011 to 2018.

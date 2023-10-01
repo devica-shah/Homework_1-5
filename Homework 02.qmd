@@ -1,0 +1,128 @@
+---
+title: "Homework 02"
+Author: Devica Shah
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+
+olympics  <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-27/olympics.csv')
+glimpse(olympics)
+
+table(olympics$medal)
+
+```
+
+## Question 1
+
+```{r}
+gold_medalists <- olympics %>% 
+  filter(medal == "Gold")
+
+glimpse(gold_medalists)
+```
+
+There are 13,372 rows in the resulting dataset.
+
+## Question 2
+
+```{r}
+drop_na(gold_medalists)
+ggplot(gold_medalists, 
+       aes(x = year, 
+           y = age)) +
+    geom_point(alpha = 0.2)
+```
+
+I used a scatter plot to display the data.
+
+As time goes on, more winners are between the age of early 20s to mid 30s. In the past, there were more winners that were over 30 and 40 years old.
+
+I used transparency to fix overplotting (I put alpha = 0.2 into the geom_point() function).
+
+## Question 3
+
+```{r}
+us_medals <- gold_medalists %>% 
+  filter(noc == "USA") %>% 
+  group_by(year) %>% 
+  summarise(num_medals = n())
+
+glimpse(us_medals)
+
+ggplot(us_medals, 
+       aes(x = year,
+           y = num_medals)) +
+    geom_line()
+```
+
+1984 was the country's most successful year.
+
+The line becomes wiggly at the end of the graph because in 1994 the summer and winter olympics separated and began to be held every four years (with a two year difference between summer and winter).
+
+## Question 4
+
+```{r}
+two_events <- gold_medalists %>%
+  filter(
+    event == "Gymnastics Men's Individual All-Around"  |
+      event == "Gymnastics Women's Individual All-Around" |
+      event == "Athletics Women's 100 metres"   |
+      event == "Athletics Men's 100 metres"
+  ) 
+
+gymnastics_events <- two_events %>%
+  filter(event == "Gymnastics Men's Individual All-Around"  |
+      event == "Gymnastics Women's Individual All-Around"
+  )
+
+```
+
+I filtered the dataset to only include Women's or Men's Gymnastics and created a new data set called gymnastics_events.
+
+```{r}
+
+ggplot(gymnastics_events,
+       aes(x = age)) +
+    geom_histogram( color = "white", binwidth = 1)
+```
+
+This histogram demonstrates that most gymnastics winners are between the age 20 and 30, but especially prominent for ages 22, 23, 25 and 28. There are less winners that are younger then 20 years old and even less winners that above age 30.
+
+```{r}
+
+ggplot(gymnastics_events,
+       aes(x = age)) +
+    geom_histogram( color = "white", binwidth = 1) +
+  facet_wrap(~sex)
+```
+
+The histograms demonstrates that males winners in gymnastics tend to be older than females.
+
+## Question 5
+
+```{r}
+ggplot(two_events,
+       aes(x= event,
+           y = height)) +
+  geom_boxplot() +
+theme(axis.text.x = element_text(size = 6))
+```
+
+The Athletics Men's and Women's metres have taller athletes than the Men's and Women's Gymnastics. This could be seen by the boxplots, where the first to sets (metres) have a higher interquartile range (the middle 50% of the data) than the last two boxplots (gymnastics).
+
+## Question 6
+
+```{r}
+us_medalists <- gold_medalists %>% 
+  filter(noc == "USA")
+
+ggplot(us_medalists, 
+       aes(x = year, fill = sex)) +
+  geom_bar(position = "dodge")
+```
+
+I noticed that females on the USA team began to earn more gold medals in later years (beginning after the 1950s , but concentrating more near the 2000s). Men on the USA team have been winning all of the years.
