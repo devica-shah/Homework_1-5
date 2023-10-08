@@ -1,0 +1,145 @@
+---
+title: "Homework DV-04"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+## Question 1
+
+```{r}
+#| message: false
+library(tidyverse)
+
+# Read in the data 
+tv_ratings <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/tv_ratings.csv")
+
+# Glimpse the data 
+glimpse(tv_ratings)
+```
+
+```{r}
+tv_long <- tv_ratings %>% 
+  group_by(title) %>% 
+  summarise(num_seasons = n()) %>% 
+  ungroup() %>% 
+  left_join(tv_ratings, by = "title") 
+
+tv_long <- tv_long %>% 
+  filter(num_seasons >= 5)
+```
+
+```{r}
+graph1 <- ggplot(tv_long,
+                 aes(x = seasonNumber, y = av_rating, group = titleId)) +
+  geom_line() 
+graph1
+```
+
+The graph shows there are less shows with more than 10 seasons. The graph is not clear, there are too many lines. and it is very unclear which line is for which.
+
+## Question 2
+
+```{r}
+graph2 <- ggplot(tv_long,
+                 aes(x = seasonNumber, y = av_rating, group = titleId)) +
+  geom_line() +
+  facet_wrap(~genres)
+graph2
+```
+
+Crime, Drama, Mystery category of genre tends to last longer. As the season increases there are less ratings because not all genres last for many seasons. There is no way of me identifying from the graph what show on Drama, Family, and Fantasy just plummeted.
+
+## Question 3
+
+```{r}
+tv_ratings_new <- tv_ratings %>% 
+  filter(av_rating >= 9)
+```
+
+```{r}
+graph3 <- ggplot(tv_ratings_new,
+                 aes(x = genres)) +
+  geom_bar() +
+  coord_flip()
+graph3
+```
+
+Adding 'coord_flip()' to the end of my plot cause the x-axis and y-axis values to flip, bit it also rotates the graph to create horizontal bars rather than vertical bars.
+
+Drama is the most top-rated show.
+
+## Question 4
+
+```{r}
+comedies_dramas <- tv_ratings %>% 
+  mutate(is_comedy = if_else(str_detect(genres, "Comedy"), 
+                             1, 
+                             0)) %>% # If it contains the word comedy then 1, else 0
+  filter(is_comedy == 1 | genres == "Drama") %>% # Keep comedies and dramas
+  mutate(genres = if_else(genres == "Drama", # Make it so that we only have those two genres
+                          "Drama", 
+                          "Comedy"))
+
+glimpse(comedies_dramas)
+```
+
+```{r}
+graph4 <- ggplot(comedies_dramas,
+                 aes(x = av_rating, group= genres, color = genres)) +
+  geom_density()
+graph4
+```
+
+My prediction is correct. Drama is rated higher than comedies. Most of the comedy shows are concentrated around the average rating of 8. Since the drama shows have a lower peak, they are more spread across and have a higher concentration of ratings above 8 than comedy shows.
+
+## Question 5
+
+```{r}
+graph5 <- ggplot(comedies_dramas,
+                 aes(x = av_rating, group= genres)) +
+  geom_histogram(color = "white") +
+  facet_wrap(~genres)
+graph5
+```
+
+```{r}
+graph6 <- ggplot(comedies_dramas,
+                 aes(x = av_rating, group = genres, fill = genres)) +
+  geom_histogram(color = "white")
+graph6
+```
+
+```{r}
+graph7 <- ggplot(comedies_dramas,
+                 aes(x = av_rating, group = genres, color = genres)) +
+  geom_freqpoly()
+graph7
+```
+
+I notice that the geom_freqpoly() plot (graph7) clearly shows when drama or comedies has a higher count for a certain rating.
+
+I think the third graph using geom_freqpoly() is most informative because the spread of ratings for both comedy and dramas can easily be compared.
+
+## Question 6
+
+```{r}
+graph8 <-   ggplot(comedies_dramas,
+                   aes(x = av_rating, y = share))+
+  geom_bin_2d()
+graph8
+```
+
+I noticed that a majority of the shows have shares that are below 10. This gives information on the count of shows (which could not be displayed in a scatterplot) using a gradient scale.
+
+```{r}
+graph9 <-   ggplot(comedies_dramas,
+                   aes(x = av_rating, y = share, fill = genres))+
+  geom_bin_2d()
+graph9
+```
+
+I noticed that comedies had generally higher shares than drama shows. Drama shows relatively had low shares of below 5 (disregarding one outlier).
+
+There is one big outlier that is a drama show which had above 25 shares at an average rating of roughly an 8.2
