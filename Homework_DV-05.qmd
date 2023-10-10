@@ -1,0 +1,155 @@
+---
+title: "Homework_05_DV"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+# Read in the data 
+#| message: false
+wncaa <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/wncaa.csv")
+# Glimpse the data 
+glimpse(wncaa)
+```
+
+## Question 1
+
+```{r}
+wncaa_wins <- wncaa %>% 
+  filter(tourney_finish == "Champ")
+wncaa_wins
+```
+
+```{r}
+wncaa_wins1 <- wncaa_wins %>% 
+  group_by(school) %>% 
+  summarize(N = n()) %>% 
+  mutate(freq = N/ sum(N),
+         pct = round(freq*100, 0))
+  
+wncaa_wins1
+```
+
+```{r}
+school_percent <- ggplot(wncaa_wins1,
+                         aes(x = school, y = pct)) +
+  geom_col() + coord_flip() +
+  labs(y = "Percentage of Tournaments Won", x = "School", title = "Percent of Tournaments Won by each Team")
+school_percent
+```
+
+Most schools have 5% or lower in winning tournaments. UConn and Tennessee have won the most tournaments.
+
+## Question 2
+
+```{r}
+champ_names <- unique(wncaa_wins1$school)
+winners <- wncaa %>% 
+  filter(school %in% champ_names)
+```
+
+```{r}
+distr_seeds <- ggplot(data = winners, 
+                      mapping = aes(x = school, y = seed)) +
+  geom_boxplot(outlier.shape = NA) + 
+  coord_flip() + 
+  geom_jitter(alpha = 0.2) +
+  labs(x = "School Team", y = "Seeds", title = "Distribution of Seeds for each School")
+distr_seeds
+```
+
+```{r}
+winners_reorders <- winners %>% 
+  group_by(school) %>%  
+  mutate(mean_seed = mean(seed, na.rm = TRUE)) %>% 
+  ungroup()
+```
+
+```{r}
+reorder_plot <- ggplot(data = winners_reorders, 
+                      mapping = aes(x = reorder(school, mean_seed, na.rm = TRUE), y = seed)) +
+  geom_boxplot(outlier.shape = NA) + 
+  coord_flip() + 
+  geom_jitter(alpha = 0.2) +
+  labs(x = "School Team", y = "Seeds", title = "Distribution of Seeds for each School")
+reorder_plot
+```
+
+The results show that the median of Old Dominion is the highest median of all the school teams. It is much more clearer than the plot that is not reordered. To my surprise, the spread of data for all the teams is mostly concentrated between 0 and 7 seeds.
+
+```{r}
+reorder_violin <- ggplot(data = winners_reorders, 
+                      mapping = aes(x = reorder(school, mean_seed, na.rm = TRUE), y = seed, fill = school)) +
+  geom_violin(outlier.shape = NA) + 
+  coord_flip() + 
+  geom_jitter(alpha = 0.2) +
+  labs(x = "School Team", y = "Seeds", title = "Distribution of Seeds for each School")
+reorder_violin
+```
+
+I find the geom_boxplot() plot easier to read because the distribution of data is demonstrated in clear boxes. The boxplots demonstrate where the middle 50% of values is located, the median, and outliers. The geom_violin() shows different lengths of a line, however it is difficult to assess the differences in length because of how small the lengths are.
+
+## Question 3
+
+```{r}
+reorder_point <- ggplot(data = winners_reorders, 
+                      mapping = aes(x = reorder(school, mean_seed, na.rm = TRUE), y = seed)) +
+  geom_point(outlier.shape = NA) + 
+  coord_flip() + 
+  geom_jitter(alpha = 0.2) +
+  labs(x = "School Team", y = "Seeds", title = "Distribution of Seeds for each School")
+reorder_point
+```
+
+The graph does not work well because only points are plotted (only geom_point()), without a general figure to guide the eyes with a pattern. Additionally, the lines look like they are meant to be viewed vertically, however they are supposed to be analyzed horizontally when comparing each team.
+
+## Question 4
+
+```{r}
+winners_mean_sd <- winners %>% group_by(school) %>%
+    summarize_if(is.numeric, funs(mean, sd), na.rm = TRUE) %>%
+    ungroup()
+
+dotplot <- ggplot(winners_mean_sd,
+                 aes(x = reorder(school, reg_percent_mean),
+                     y = reg_percent_mean) ) +
+  geom_point() +
+  geom_jitter(alpha = 0.2) +
+  coord_flip() +
+  labs(x = "School Team", y = "Average Win Percentage", title = "Average Win Percentage of each School")
+dotplot
+```
+
+UConn is the team with the highest average win percentage (of above 90%). A majority of the school teams have an average win percentage between 75% and 80%.
+
+Texas A&M had the lowest average win percentage in the season.
+
+```{r}
+ggplot(winners_mean_sd,
+                 aes(x = reorder(school, reg_percent_mean),
+                     y = reg_percent_mean) ) + 
+  geom_pointrange(mapping = aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) +
+  coord_flip() +
+  labs(x = "School Team", y = "Average Win Percentage", title = "Average Win Percentage of each School")
+```
+
+For most of the teams, the spread of data in confidence is about 10% above and below the mean of the average win percentage.
+
+Texas A&M has the narrowest interval. This means that it has the most concentrated data around the mean win percentage for the team.
+
+```{r}
+ggplot(winners_mean_sd,
+                 aes(x = reorder(school, reg_percent_mean),
+                     y = reg_percent_mean) ) + 
+  geom_linerange(mapping = aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) + 
+  coord_flip() +
+  labs(x = "School Team", y = "Average Win Percentage", title = "Average Win Percentage of each School")
+```
+
+I made a similar plot using geom_linerange().
+
+I don't think its a good idea in this situation to use geom_linerange(). I think that the geom_pointrange() is easier to use because it includes the mean win percentage for each team, so I prefer it over the geom_linerange() which includes no point to recognize the mean.

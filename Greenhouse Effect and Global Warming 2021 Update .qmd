@@ -1,0 +1,53 @@
+---
+title: "Homework_DV-05"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+# Read in the data 
+wncaa <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/wncaa.csv")
+
+# Glimpse the data 
+glimpse(wncaa)
+```
+
+## Question 1
+
+```{r}
+wncaa_Champ <- wncaa %>% 
+  filter(tourney_finish == "Champ")
+
+wncaa_Champ
+```
+
+```{r}
+wncaa_Champ_tourn <- wncaa %>% 
+  group_by(school) %>% 
+  summarize(N = n()) %>% 
+  mutate(freq = N / sum(N),
+         pct = freq *100)
+wncaa_Champ_tourn
+```
+
+```{r}
+
+plot_percent <- ggplot(wncaa_Champ_tourn,
+                       aes(x = school, y = pct, ylim(0.0, 1))) + 
+  coord_flip()
+plot_percent
+```
+
+## Question 2
+
+```{r}
+
+```
+
+## Question 3
+
+## Question 4
