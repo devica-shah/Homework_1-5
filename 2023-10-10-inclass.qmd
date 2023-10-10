@@ -1,0 +1,79 @@
+---
+title: "2023-10-10-inclass"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+```{r}
+library(tidyverse)
+library(tibble)
+library(tidyverse)
+library(moderndive)
+library(ggthemes)
+library(patchwork)
+library(skimr)
+set.seed(12345)
+# fake data
+fd <- tibble(x1 = rnorm(n = 500,
+                        mean = 500,
+                        sd = 100),
+             x2 = rnorm(n = 500,
+                        mean = 500,
+                        sd = 50))
+# wider SD
+p1 <- ggplot(fd,
+             aes(x = x1)) +
+  geom_histogram(color = "white",
+                 boundary = 500,
+                 binwidth = 25) +
+  scale_x_continuous(limits = c(200,800))
+
+# narrower SD
+p2 <- ggplot(fd,
+             aes(x = x2)) +
+  geom_histogram(color = "white",
+                 boundary = 500,
+                 binwidth = 25) +
+  scale_x_continuous(limits = c(200,800))
+
+# put together
+fd |> get_correlation(x1 ~ x2) 
+
+skim(fd)
+
+
+
+```
+
+```{r}
+mod2 <- lm(x1 ~ x2,
+           data = fd) 
+mod2
+
+get_regression_table(mod2)
+```
+
+```{r}
+p <- ggplot(fd,
+       aes(x = x1,
+           y = x2)) +
+  geom_jitter(alpha = .3)
+
+p +  geom_abline(intercept = 513.088	,
+                slope = -0.010,
+                color = "blue",
+                size = 1.5)
+```
+
+```{r}
+ggplot(fd,
+       aes(x = x1,
+           y = x2)) +
+  geom_boxplot(coef = 0,
+               outlier.alpha = 0,
+               width = .5) +
+  geom_jitter(alpha = .3,
+              height = .2) 
+```
