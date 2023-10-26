@@ -1,0 +1,201 @@
+---
+title: "Homework–MD-6"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+# Set our ggplot theme from the outset
+theme_set(theme_light())
+# Read in the data 
+gender_employment <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/gender_employment.csv")
+
+# Glimpse at the data 
+glimpse(gender_employment)
+```
+
+```{r}
+#| warning: false
+gender_employment%>% 
+  ggplot(aes(x = year, y = wage_percent_of_male)) +
+  geom_jitter(alpha = 0.1) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Women's earnings with respect to men's", 
+       y = "% of Men's Income", 
+       x = "Year")
+```
+
+## Question 1
+
+```{r}
+gender_employment <- gender_employment %>% 
+  mutate(major_category = as.factor(major_category), 
+         major_category = relevel(major_category, ref = "Management, Business, and Financial"))
+```
+
+```{r}
+summ <- gender_employment %>% 
+  select(wage_percent_of_male, year, major_category) %>% 
+  summary()
+summ
+```
+
+```{r}
+#| warning: false
+ggplot(gender_employment, 
+       aes(x = year,
+           y = wage_percent_of_male,
+           group = major_category)) +
+  geom_parallel_slopes(se = FALSE) +
+  labs(x = "Year", y = "Wage Percent of Male", title = "Change in Wage Percent of Male over Time for Major Categories", caption = "Source: gender_employment", subtitle = "Parallel Slope Model")
+
+parallel_model <- lm(wage_percent_of_male ~ year + major_category,
+           data = gender_employment)
+broom::tidy(parallel_model)
+```
+
+**What are the overall trends by year?**
+
+As the years go by, the wage percentage of males will increase slightly by 0.192.
+
+-306.718 + 2015(0.192) + (1)(3.326) = 83.488
+
+The wage percentage of male income for Sales and Office occupations on 2015 is about 83.488.
+
+-306.718 + 2016(0.192) + (1)(6.077) = 86.431
+
+The wage percentage of male income for Service occupations on 2016 is about 86.431.
+
+## Question 2
+
+```{r}
+#| warning: false
+ggplot(gender_employment, 
+       aes(x = year,
+           y = wage_percent_of_male,
+           group = major_category)) +
+   geom_smooth(method = "lm" ,
+              se = FALSE)+
+   labs(x = "Year", y = "Wage Percent of Male", title = "Change in Wage Percent of Male over Time for Each Major Category", caption = "Source: gender_employment") +
+  facet_wrap(~major_category)
+```
+
+I notice that for each major category, the slope line is different for the wage percent of male over time. This indicates that the parallel slope model should not be used to analyze the data because it makes every single major category have the same slope. Also, some of the slopes are positive (increasing) and others are negative (decreasing) for the major categories, so they would cross. This makes the additional complexity warranted - an interaction model should be used rather than a parallel slopes model.
+
+## Question 3
+
+```{r}
+mod2 <- lm(wage_percent_of_male ~ year + major_category + year:major_category,
+           data = gender_employment)
+results1 <- get_regression_table(mod2) %>% 
+  select(term, estimate)
+results1
+```
+
+-1370.472 + (2016)(0.720) + (1)(1002.853) + (1)(2016)(-0.495) = 85.981
+
+The estimate for the wage percentage of male income for "Computer, Engineering, and Science" in 2016 is 85.981.
+
+-1370.472 + (2016)(0.720) + (1)(2137.650) + (1)(2016)(-1.058) = 85.77
+
+The estimate for the wage percentage of male income for "Service" in 2016 is 85.77.
+
+I noticed that there is a difference between the parallel slopes model and the interaction model with this data. The parallel slopes model had an estimate of 86.431 of wage percentage of male income for "Service" in 2016, while the interaction had 85.77%.
+
+```{r}
+#| warning: false
+ggplot(gender_employment, 
+       aes(x = year,
+           y = wage_percent_of_male,
+           group = major_category)) +
+  geom_smooth(method = "lm" ,
+              se = FALSE) + 
+   labs(x = "Year", y = "Wage Percent of Male", title = "Change in Wage Percent of Male over Time for Each Major Category", subtitle = "Interaction Model", caption = "Source: gender_employment") 
+```
+
+## Question 4
+
+A parallel trends model could be used when the additional complexity of the interaction model is not warranted. This is when the slopes of the two models are not different by much. So the parallel slopes model is simpler, and in that situation it would be used.
+
+## Question 5
+
+```{r}
+simple_fit <- lm(wage_percent_of_male ~ year,
+           data = gender_employment)
+broom::tidy(simple_fit)
+```
+
+The y-intercept for the wage percent of male is -321.832. As the years go by, beginning in 2013, the wage percent of male increases by 0.201. There is an outcome variable, y, (wage percent of male) and an explanatory variable (year).
+
+wage percent of male = -321.832 + (year)(0.201)
+
+```{r}
+gender_employment %>% 
+  select(year, wage_percent_of_male, percent_female) %>% 
+  cor(use = "complete.obs")
+```
+
+Year and Wage Percent of Male: 0.024
+
+The correlation coefficient of Year and Wage Percent of Male is 0.024. This indicates a weak linear relationship.
+
+Year and Percent Female: 0.005
+
+The correlation coefficient of Year and Percent Female is 0.005. This indicates a weak linear relationship.
+
+Percent Female and Wage Percentage of Male: 0.111
+
+The correlation coefficient of Female and Wage Percentage of Male is 0.111. This indicates a positive linear relationship.
+
+```{r}
+multiple_fit <- lm (wage_percent_of_male ~ year*percent_female, 
+                    data = gender_employment)
+get_regression_table(multiple_fit) %>% 
+  select(term,estimate)
+```
+
+The two explanatory variables (year and percent female) provide a better interpretation of the y-intercept (-800.111) and the slope to evaluate the wage percent of male. The slope of the year is higher (0.438) than when only one explanatory variable was used (0.2014713). I am surprised about how low the y-intercept is.
+
+## Question 6
+
+R-squared, aka the "coefficient of determination", is the proportion of the variation of the y (outcome variable) that is shown by a model. R-squared values are between 0 and 1: 0 being that a model shows 0% of variation in y and 1 being that a model shows 100% of variation in y.
+
+```{r}
+#| message: false
+library(broom)
+
+simple_glanced <- glance(simple_fit)
+simple_glanced$r.squared
+```
+
+```{r}
+multiple_glanced <- glance(multiple_fit)
+multiple_glanced$r.squared
+```
+
+The simple fit model has an r-squared value of 0.0005778711, while the multiple fit model has an r-squared value of 0.01321338. This means that the simple fit model shows 0.05778711% of variation in y (wage percent of male) and the multiple fit model shows 1.321338% of variation in y (wage percent of male). The simple fit model has an r-squared value closer to 0 than the multiple fit model. To conclude, the simple fit model has less proportion of the variation of the outcome variable shown by the model than the multiple fit model. The additional complexity of the multiple fit model over the simple fit model improves our r-squared value by a relatively large amount, it could be argued that the additional complexity is warranted.
+
+## Warning sign
+
+```{r}
+random_numbers <- rnorm(n = nrow(gender_employment), 
+                        mean = 0, 
+                        sd = 4)
+gender_employment$random_noise <- random_numbers
+
+# New model 
+random_fit <- lm(wage_percent_of_male ~ year + percent_female + random_noise, data = gender_employment)
+get_regression_table(random_fit)
+```
+
+```{r}
+random_glanced <- glance(random_fit)
+random_glanced$r.squared
+```
+
+This shows that adding any extra variable will change the r-squared. In this case, it increased the r-sqaured slightly. Though I am not sure if this was more accurate or not.
