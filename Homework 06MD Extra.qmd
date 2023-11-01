@@ -1,0 +1,181 @@
+---
+title: "Homework MD6Extra"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+theme_set(theme_minimal())
+```
+
+```{r}
+data(bikes, package = "bayesrules")
+glimpse(bikes)
+```
+
+## Question 0
+
+There are 500 rows in the dataset. Each row represents the specifics of biking rideship of Capital Bikeshare service in Washington DC. The dataset covers the temperature (actual and what it feels like), date, season, weather, rideship, windspeed, if its a holiday or weekend, and category of hurricane. The largest number of rides is 6946 rides. The highest windspeed recorded is 34 mph.
+
+```{r}
+largest_ride <- bikes %>% 
+  arrange(desc(rides)) %>% 
+  select(rides)
+```
+
+```{r}
+
+largest_wind <- bikes %>% 
+  arrange(desc(windspeed)) %>% 
+  select(windspeed)
+```
+
+## Question 1
+
+```{r}
+get_correlation(bikes, rides ~ temp_feel)
+```
+
+The correlation between number of rides and what the temperature feels like (in Fahrenheit) is 0.582.
+
+```{r}
+get_correlation(bikes, rides ~ windspeed)
+```
+
+The correlation between the number of rides and wind speed (miles per hour) is -0.195.
+
+## Question 2
+
+```{r}
+bikes <- bikes %>% 
+mutate(wind_kph = windspeed * 1.61)
+```
+
+```{r}
+get_correlation(bikes, windspeed ~ wind_kph)
+```
+
+The correlation between windspeed in miles per hour and kilometers per hour is 1 (the highest correlation) because both data value pattterns are the same, but just with different values itself. The correlation coefficient analyzes the patterns between the two datasets. So when I converted one dataset to a different unit, the pattern stayed the same but the values changed. I was comparing two data sets with exactly the same pattern. Furthermore, when finding the correlation coefficient you are canceling out the units, so the units in particular do not matter - only the pattern of the datasets being compared.
+
+## Question 3
+
+```{r}
+fxnMPH <- lm(rides ~ windspeed,
+              data = bikes)
+get_regression_table(fxnMPH)
+```
+
+```{r}
+fxnKPH <- lm(rides ~ wind_kph,
+              data = bikes)
+get_regression_table(fxnKPH)
+```
+
+The y-intercept of both models are the same because without any wind both values will have the same number of rides. To explain this further I am going to write out the formulas for estimating rides using each model.
+
+**For mph: rides = 4205.065 -55.523(wind)**
+
+**For kph: rides = 4205.065 - 34.486(wind)**
+
+Now if I plug in 5mph for wind, the estimated number of bike rides would be:
+
+4205.065 -55.523(5) = **3927 rides**
+
+If I convert 5mph to kph (which is 8.04672kph) then the estimated number of bike rides would be:
+
+4205.065 - 34.486(8.04672) = **3928 rides**
+
+The number of rides are almost exactly the same. The difference is a result of estimating the conversion factor between mph and kph. This is why when the wind is 0mph or 0kph the wind is technically equal and the same amount of rides will occur, which is the y-intercept. This also explains why the coefficient for wind is different between kph and mph. Since, the wind values were converted from mph to kph using a value of 1.61, the opposite is done for the coefficients. The coefficient for the model using kph is multiplied by 1.61 to get the coefficient for the model using mph: 34.486(1.61) = 55.522. Again the difference is due to the rounding of the conversion factor.
+
+## Question 4
+
+For mph: rides = 4205.065 -55.523(20) = 3095 rides
+
+For kph: rides = 4205.065 - 34.486(20) = 3515 rides
+
+The predicted ridership for wind blowing at 20 KPH is 3515 rides.
+
+The predicted ridership for wind blowing at 20 MPH is 3095 rides.
+
+## Question 5
+
+```{r}
+bikes <- bikes %>% 
+  mutate(temp_c = (temp_feel -32)*(5/9))
+```
+
+```{r}
+predict3 <- lm(rides ~ wind_kph + temp_c,
+              data = bikes)
+get_regression_table(predict3)
+```
+
+For a 1 KPH increase in windspeed, the model expects a -19.842 increase in rideship.
+
+For a 1 degree (in celsius) increase in temperature feeling, the model expects a 143.234 increase in rideship.
+
+The intercept for the model is 942.426. This means that the initial value with no wind and when the temperature feels like 0 degrees, then the number of bike rides is 942.
+
+## Question 6
+
+```{r}
+#| message: false
+library(ggeffects)
+predictions <- ggpredict(predict3,
+                         terms = c("temp_c[25,15,10]",
+                                 "wind_kph[15,5,40]"),
+                         ci_level = NA) 
+predictions
+```
+
+SITUATION 1: temp = 25C, wind = 15 KPH, ridership prediction = 4226 rides
+
+SITUATION 2: temp = 15C, wind = 5 KPH, ridership prediction = 2992 rides
+
+SITUATION 3: temp = 10C, wind = 40 KPH, ridership prediction = 1581 rides
+
+## Question 7
+
+```{r}
+predict4 <- lm(rides ~ wind_kph + temp_c + weekend,
+              data = bikes)
+get_regression_table(predict4)
+```
+
+rides = 1214.803 - 20.386(wind in KPH) + 140.339(temperature in celsius) - 713.575(if Weekend)
+
+If it is the weekend, then the rideship decreases by 714 rides.
+
+## Question 8
+
+```{r}
+summary_vars <- bikes %>% 
+  summarize(mean_temp = mean(temp_c), mean_wind = mean(wind_kph))
+summary_vars
+```
+
+Weekend: 1214.803 + 140.339(20.63539) - 20.386(20.96062) -713.575(1) = 2969.875 rides
+
+Weekday: 1214.803 + 140.339(20.63539) - 20.386(20.96062) -713.575(0) = 3683.450 rides
+
+If the temperature and the wind speed are average, the expected ridership for a weekend day is 2970 rides. The expected ridership for a weekday is 3683 rides.
+
+## Question 9
+
+```{r}
+  
+largest_out <- get_regression_points(predict4) %>% 
+  arrange(desc(abs(residual))) 
+largest_out
+
+bikes %>% 
+  filter(rides == 20) %>% 
+  select(date, rides)
+```
+
+On October 29, 2012 Hurricane Sandy hit the East Coast, including DC, so the streets were flooded and most likely nobody was outside biking.
