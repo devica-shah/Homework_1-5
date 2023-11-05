@@ -1,0 +1,29 @@
+---
+title: "Final Project Idea"
+format: html
+editor: visual
+embed-resources: true
+Author: Devica Shah
+---
+
+## Idea 1
+
+My idea is to assess how female lead actors in movies impact viewership. I found a dataset that has columns for the female representation of the cast and the crew. I can use the female representation of the cast to fit a model to predict the popularity of the movie. Then I can use the female representation of the crew to do the same. I can use both variables to predict the outcome variable (popularity). This might help me answer my potential research question: How does female representation in the movie-making process impact the popularity of films?
+
+Here's a potential dataset that I could use.
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+movies <- read_csv("/Users/devica/Desktop/movies.csv")
+glimpse(movies)
+```
+
+## Other People Ideas
+
+Thomas is looking for Jeopardy related data.
+
+Kristi is looking at net worth.
+
+\
