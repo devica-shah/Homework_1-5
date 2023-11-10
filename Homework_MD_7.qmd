@@ -1,0 +1,159 @@
+---
+title: "Homework MD 7"
+format: html
+editor: visual
+embed-resources: true
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(here)
+library(moderndive)
+theme_set(theme_minimal())
+
+nobel_winners <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/nobel_winners.csv")
+```
+
+```{r}
+nobel_winners_flt <- nobel_winners %>% 
+  filter(category != "Peace") %>% 
+  mutate(is_us = if_else(birth_country == "United States of America", 1, 0))
+```
+
+```{r}
+true_prop <- nobel_winners_flt %>% 
+  group_by(is_us) %>% 
+  summarise(prop = n()/nrow(nobel_winners_flt))
+
+ggplot() + 
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1)) + 
+  geom_vline(xintercept = true_prop[2,2][[1]], linetype = "dashed")  + 
+  labs(x = "Proportion")
+```
+
+```{r}
+set.seed(33)
+# Random sample 
+our_sample <- sample_n(nobel_winners_flt, 
+                       size = 25, 
+                       replace = F)
+
+sample_prop <- our_sample %>% 
+  group_by(is_us) %>% 
+  summarise(prop = n()/nrow(our_sample))
+
+# How does our proportion look like? 
+ggplot() + 
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1)) + 
+  geom_vline(xintercept = true_prop[2,2][[1]], linetype = "dashed")  + 
+  geom_vline(xintercept = sample_prop[2,2][[1]], linetype = "dotted", col = "red") +
+  labs(x = "Proportion")
+```
+
+## Question 1
+
+The 839 Scientific nobel prize winners is the population.
+
+The 25 random sample of scientific Nobel prize winners is the sampling frame.
+
+The black line is the true proportion of US-born nobel prize winners based on all of the population.
+
+The red line is an estimate of the proportion of US-born nobel prize winners based on the sample proportion of 25 winners.
+
+## Question 2
+
+```{r}
+sample1 <- nobel_winners_flt %>% 
+  rep_sample_n(size = 25, reps = 50)
+```
+
+```{r}
+sampleSum1 <- sample1 %>% 
+  group_by(replicate) %>% 
+  summarise(prop = sum(is_us)/25) 
+```
+
+```{r}
+plot1 <- ggplot(sampleSum1, aes(x = prop)) +
+  geom_histogram(binwidth = 0.05, color = "white") +
+  labs(x = "Proportion of 25 US winners", y = "Count", title = "Distributions of 50 Proportions of US Nobel Prize Winners", caption = "Source: nobel-winners")  + 
+  geom_vline(xintercept = true_prop[2,2][[1]], linetype = "dashed", color ="blue") +
+  geom_vline(xintercept = mean(sampleSum1$prop), linetype = "dashed", color ="red")
+plot1
+```
+
+## Question 3
+
+```{r}
+sample2 <- nobel_winners_flt %>% 
+  rep_sample_n(size = 100, reps = 50)
+```
+
+```{r}
+sampleSum2 <- sample2 %>% 
+  group_by(replicate) %>% 
+  summarise(prop = sum(is_us)/100) 
+```
+
+```{r}
+plot2 <- ggplot(sampleSum2, aes(x = prop)) +
+  geom_histogram(binwidth = 0.01, color = "white") +
+  labs(x = "Proportion of 50 US winners", y = "Count", title = "Distributions of 100 Proportions of US Nobel Prize Winners", caption = "Source: nobel-winners")  + 
+  geom_vline(xintercept = true_prop[2,2][[1]], linetype = "dashed", color ="blue") +
+  geom_vline(xintercept = mean(sampleSum2$prop), linetype = "dashed", color ="red")
+plot2
+```
+
+The function with 50 samples of 100 winners each varies less than the function with 25 samples of 50 winners. As the sample size increased, the variability decreased. This may have occurred because when you are sampling a larger population, you have less differences due to sampling variation.
+
+## Question 4
+
+```{r}
+stand_dev1 <- sampleSum1 %>% 
+  summarize(sd = sd(prop))
+stand_dev1
+```
+
+```{r}
+stand_dev2 <- sampleSum2 %>% 
+  summarize(sd = sd(prop))
+stand_dev2
+```
+
+The standard deviation results matched my prediction. The standard deviation for the function with 25 samples of 50 winners each is larger than the standard deviation for the function with 50 samples of 100 winners each. Thus, the lower standard deviation is associated with the function with a larger sample size (size of 100). This indicates that as the sample size increase, the variability decreases and the guesses at the true proportion are more accurate.
+
+## Question 5
+
+```{r}
+nobel_female <- nobel_winners_flt %>% 
+  mutate(is_female = if_else(gender == "Female", 1, 0)) %>% 
+  na.omit()
+```
+
+```{r}
+sample3 <- nobel_female %>% 
+  rep_sample_n(size = 100, reps = 50)
+```
+
+```{r}
+sampleSum3 <- sample3 %>% 
+  group_by(replicate) %>% 
+  summarise(prop = sum(is_female)/100) 
+
+true_prop3 <- nobel_female  %>% 
+  group_by(is_female) %>% 
+  summarise(prop = n()/nrow(nobel_female ))
+
+plot3 <- ggplot(sampleSum3, 
+                aes(x = prop)) +
+  geom_histogram(binwidth = 0.01, color = "white") + 
+  geom_vline(xintercept = true_prop3[2,2][[1]], linetype = "dashed", color ="blue") +
+  geom_vline(xintercept = mean(sampleSum3$prop), linetype = "dashed", color ="red") +
+  labs(x = "Proportion of 100 female winners", y = "Count", title = "Distributions of 50 Proportions of Female Nobel Prize Winners", caption = "Source: nobel-winners")  
+plot3
+```
+
+## Question 6
+
+The Central Limit Theorem concludes that as the sample size of a population increases, the averages of the samples become more centralized with a narrower spread of distribution. This narrow spread means that there is less variability between the sample. Moreover, the theorem states that the average sample has a normal distribution, which is a bell-curved shape. As the sample size increases, the distribution becomes more normal and the sample averages get more precise towards the true mean distribution of the population.
