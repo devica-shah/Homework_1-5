@@ -1,0 +1,185 @@
+---
+title: "Homework 8/9"
+format: html
+editor: visual
+embed-resources: true
+---
+
+```{r}
+#| message: false
+#| include: false
+library(tidyverse)
+library(moderndive)
+library(infer)
+```
+
+# Chapter 8
+
+## Question 1
+
+```{r}
+set.seed(1108)
+
+poll <- tibble(
+  vote_gop = rbinom(n = 1000,
+                    size = 1,
+                    prob = .53))
+```
+
+**Method 1:**
+
+```{r}
+bootstrap1 <- poll %>% 
+  rep_sample_n(size = 1000, replace = TRUE, reps = 1000) %>% 
+  group_by(replicate) %>% 
+  summarize(mean_vote = mean(vote_gop))
+bootstrap1
+
+quantile(bootstrap1$mean_vote, c(.025, .975))
+```
+
+The estimated confidence interval is between 0.484 and 0.547.
+
+**Method 2:**
+
+```{r}
+#| message: false
+bootstrap2 <- poll %>% 
+  specify(response = vote_gop) %>% 
+  generate(reps = 1000) %>% 
+  calculate(stat = "mean")
+bootstrap2
+
+get_ci(bootstrap2, level = 0.95, type = NULL, point_estimate = NULL)
+```
+
+The estimated confidence interval is between 0.485 and 0.545. This is very similar to the confidence intervals calculated above using method 1. The results are not exactly the same because the original workflow has additional steps that are not included in the infer package method.
+
+## History of Rap
+
+```{r}
+#| message: false
+rap_poll <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-14/polls.csv")
+
+top_songs <- rap_poll %>% 
+  filter(rank == 1)
+```
+
+## Question 2
+
+```{r}
+track_release <- ggplot(top_songs, 
+                        aes(x = year)) +
+  geom_histogram(binwidth = 1, color = "white") + 
+  labs(x = "Year Track Released", y = "Count", title = "Amount of Tracks Released Each Year", caption = "Source: rap_poll")
+track_release
+```
+
+```{r}
+top_song <- top_songs %>% 
+  group_by(year) %>% 
+  summarize(count = n()) %>% 
+  arrange(desc(count))
+top_song
+```
+
+1994 had the most commonly named favorite tracks with 14 critics during this year.
+
+## Question 3
+
+```{r}
+set.seed(52)
+
+bootstrap3 <- rap_poll %>% 
+  rep_sample_n(size = 107, reps = 1000, replace = TRUE) %>%
+  group_by(replicate) %>% 
+  summarize(mean_year = mean(year))
+
+percentile_ci <- bootstrap3 %>% 
+  get_confidence_interval(level = 0.95, type = "percentile")
+percentile_ci
+```
+
+The lower bound in 1996 and the upper bound is 1999.
+
+## Question 4
+
+```{r}
+bootstrap4 <- rap_poll %>% 
+  rep_sample_n(size = 25, reps = 1000, replace = TRUE) %>%
+  group_by(replicate) %>% 
+  summarize(mean_year = mean(year))
+
+percentile_ci2 <- bootstrap4 %>% 
+  get_confidence_interval(level = 0.95, type = "percentile")
+percentile_ci2
+```
+
+The width of the confidence interval is much wider with a sample size of 25 than one with a sample size of 107. This is because a smaller sample size causes more variants between the sample. More variability will cause higher confidence interval bands, a wider interval.
+
+# Chapter 9
+
+```{r}
+#| warning: false
+pl_data <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/premier_league.csv")
+
+glimpse(pl_data)
+```
+
+## Question 5
+
+```{r}
+proportion_HW <- pl_data %>% 
+  group_by(result) %>% 
+  summarise(prop = n()/nrow(pl_data))
+proportion_HW
+```
+
+The proportion of home wins during the 2015/2016 season is 41.3%.
+
+## Question 6
+
+```{r}
+#| message: false
+set.seed(22)
+
+sampled_proportions <- c()
+
+for (i in 1:1000) {
+  
+  sampled_results <- sample(c("aw", "hw" , "d"), 
+                            size = 380,
+                            replace = TRUE, 
+                            prob = c(1/3,1/3,1/3))
+  prop <- sum(sampled_results == "hw")/380
+  sampled_proportions[i] <- prop
+  
+}
+
+running_proportion <- as.data.frame(sampled_proportions)
+
+histogram <- ggplot(running_proportion,
+                    aes(x = sampled_proportions)) +
+  geom_histogram(color = "white") +
+  labs(x = "Sampled Proportions", y = "Count", title = "Expectation of Home Win Proportion", 
+       subtitle = "Assumes home win equally likely as other results") +
+  geom_vline(xintercept = 0.4131579, color = "red")
+histogram
+
+running_proportion %>% 
+  summarize(mean_hw = (mean(sampled_proportions)))
+```
+
+The histogram shows a normal distribution, bell-curve, of the proportion of home wins. This bell-curve is relatively average, with a peak near 0.33 or 33%. The proportion I found in Question 5 (as shown by the red line) is much higher than the proportion we would expect if a home win was as equally likely as any other result. The line falls very much to the right of the peak and the majority of the proportions estimated when home win had the same likelihood as the other results.
+
+## Question 7
+
+Since we are trying to analyze whether the rate of winning at home makes a difference, than we are comparing whether the home wins have the same proportion as the other results. This is why in question 6 we analyzed the proportion of home wins if it was equally as likely as the other results.
+
+The null hypothesis is there is no difference in the proportion of home wins and the other results (draw and away win). Playing a game at home has no effect on the rate of winning. This null hypothesis was assumed true in question 6, where all the results were assumed to have the same likelihood. This was known as a null distribution.
+
+The alternative hypothesis is that the proportion of home wins will be higher than the proportion of away wins and draws. This hypothesis was tested in question 5 where the proportion of all the results was found.
+
+## Question 8
+
+The p-value would either reject or fail to reject the null hypothesis. If the p-value is less than 0.05 we reject the null hypothesis in favor of the alternative hypothesis. This means that the proportion of home wins is higher than the other results of a game. This would indicate that playing at home does influence winning positively. If the p-value is greater than or equal to 0.05, we fail to reject the null hypothesis. This means that there is no difference between the proportion of home wins and the other results, so it is just as likely to win at home than it is to win an away game.
