@@ -1,0 +1,385 @@
+---
+title: "Evaluating the Impact of Female Representation on the Popularity of Movie Films"
+format: 
+   html:
+     df_print: kable
+editor: visual
+embed-resources: true
+echo: false
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+library(infer)
+library(modelsummary)
+library(skimr)
+library(knitr)
+library(kableExtra)
+library(ggeffects)
+movies <- read_csv("/Users/devica/Desktop/movies.csv")
+```
+
+#### Devica Shah
+
+Last Updated: December 5, 2023
+
+## 1. Introduction
+
+There is a major gender gap in women who star in films in the U.S. A research study in 2022 analyzing portrayal of female characters in the top-grossing films discovered that only 33% of films featured female protagonists and 11% of films had more female than male characters^\[1\]^*.* Furthermore, behind the camera, the crew follows the same pattern. A study conducted on U.S. films in 2022 found that women comprise an average of 26% of directors, writers, producers, executive producers, editors, and cinematographers^\[2\]^*.*
+
+This projects analyzes whether the female representation of the movie's cast and crew have a relation to the popularity of the movie. The genre of each film will also be taken into account to analyze its effect on the popularity of movies. To address this question, I used a data set from Kaggle that received information from a list of movies with their Bechdel Test Score^\[3\]^. The Bechdel Test is a test with three principles: (1) there must be two women, (2) the two women must talk to each other, and (3) the women must discuss something other than a man. The dataset combines this information with other factors that involve female representation and other general movie data (such as genre, countries the movie was filmed in, and year). The data set was last updated in June 2022.
+
+This study will specifically analyze the variables of popularity, cast_female_representation, crew_female_representation, genre, and popularity. It is important to analyze the female percentage of the crew because the crew makes crucial decisions in the film-making process that impact the ultimate movie.
+
+Here is a snapshot of 5 randomly sampled rows of the data we will use:
+
+```{r}
+snapshot <- movies %>%
+  sample_n(size = 5) %>% 
+  select(cast_female_representation, crew_female_representation, genres, popularity)
+```
+
+```{r}
+kable(snapshot, caption = "5 Randomly Sampled Movie Listings", format = "html") %>%
+  kable_styling()
+```
+
+## 2. Exploratory Data Analysis
+
+```{r}
+movies2 <- movies %>% 
+  filter(revenue != 0) %>% 
+  mutate(female_rep = (crew_female_representation + cast_female_representation)/2) %>% 
+  mutate(genre = ifelse(grepl(", ", genres), 
+                        sapply(strsplit(genres, ", "), function(x) trimws(gsub("^\\[|\\]$", "", x[1]))),
+                        trimws(gsub("^\\[|\\]$", "", genres))))
+
+```
+
+The study had an original sample size of 7,279 movies. Although, 2,924 movies had a revenue of 0. Since, I could not establish why the movies had no revenue and I did not want to include films that may have potentially never released, the movies were removed. So my total sample size was 4355 (Table 1).
+
+There are two values in the dataset that represent female representation: (1) the percentage of the cast that is female and (2) the percentage of the crew that is female. I had to decide how to incorporate both variables into the study. I found that the two variables have a correlation of 0.32, using the Pearson correlation coefficient test. Based on this correlation, I decided to average the two variables and create a new variable holding this information. This variable was assessed throughout this study to represent the female representation in the movie-making process.
+
+The movies in the data set include a large number of possible genre combinations, making it difficult to conduct a study on each combinations' impact on popularity of the movie. To simplify the analysis of genre in the study, I decided to only take the first genre mentioned in each movie to prevent cross listings.
+
+As seen in Table 1, the mean of popularity was highest for animation movies (n = 144, mean = 53.05, sd = 42.98). The mean of popularity was lowest for documentary movies (n = 18, mean = 17.77, sd = 2.93). The percentage of female representation in movies ranges from 0.00% to 75.74%, with a relatively low mean of 20.18% (sd = 10.00).
+
+```{r}
+## Table 1
+summ <- movies2 %>%
+  group_by(genre) %>%
+  summarize(
+    n = n(),
+    mean = mean(popularity, na.rm = TRUE),
+    median = median(popularity, na.rm = TRUE),
+    min = min(popularity, na.rm = TRUE),
+    max = max(popularity, na.rm = TRUE),
+    sd = sd(popularity, na.rm = TRUE)
+  )
+
+kable(summ, caption = "Table 1: Summary Statistics of Popularity for Each Movie Genre" ,format = "html") %>%
+  kable_styling()
+```
+
+```{r}
+#| include: false
+summ2 <- movies2 %>%
+  select(female_rep) %>% 
+  skim()
+```
+
+The distribution in Figure 1 looks relatively normal, but with right tail. Based on the distribution of the Percentage of Female Representation, there is so need for any transformations.
+
+```{r}
+#| message: false
+## figure 1
+female_plot <- ggplot(movies2, 
+                      aes(x = female_rep)) +
+  geom_histogram(color = "white", fill = "darkblue", linewidth = 0.2) +
+  labs(x = "Pecentage of Female Representation", title = "Figure 1: Distribution of Percentage of Female Representation in Movies",y = "Frequency")
+female_plot
+```
+
+Figure 2 displays a graph of the distribution of popularity. Since the graph is skewed right, a logarithmic transformation was applied to the popularity variable.
+
+```{r}
+## figure 2
+popularity_plot <- ggplot(movies2, 
+                      aes(x = popularity)) +
+  geom_histogram(color = "white", fill = "red", linewidth = 0.2, binwidth = 50) +
+  labs(x = "Popularity in Movies", y = "Frequency", title = "Figure 2: Distribution of Popularity of Movies")
+popularity_plot
+```
+
+```{r}
+movies2$log_popularity <- log(movies2$popularity)
+```
+
+The distribution of the transformed popularity variable has a normal distribution (Figure 3).
+
+```{r}
+#| message: false
+## figure 3
+adjusted_plot <- ggplot(movies2, 
+       aes(x = log_popularity)) +
+  geom_histogram(color = "white", fill = "orange", linewidth = 0.2) +
+  labs(x = "Popularity in Movies", y = "Frequency", title = "Figure 3: Distribution of Popularity (log) in Movies")
+adjusted_plot
+```
+
+In Figure 4, the scatterplot demonstrates the relationship between the numerical outcome variable (Popularity) and numerical explanatory variable (percentage of female representation). To display a better representation of the relationship between female representation and popularity of movies, the graph's popularity was limited to 250. This does not impact the relationship of the data; it only impacts the visualization of this figure. As the percentage of female representation of increases, the popularity slightly decreases. The relationship has a negative correlation coefficient of -0.09.
+
+```{r}
+#| message: false
+## figure 4
+plot_scatter <- ggplot(movies2, 
+                      aes(x = female_rep, y = log_popularity)) +
+  geom_point(alpha = 0.2) +
+  labs(x = "Pecentage of Female Representation", y = "Popularity (in log)", title = "Figure 4: Scatterplot of Relationship Between Percentage of \nFemale Representation and Popularity in Movies") +
+  geom_smooth(method = "lm", se = FALSE) 
+plot_scatter
+```
+
+```{r}
+#| include: false
+cor(movies2$female_rep, movies2$log_popularity)
+```
+
+In Figure 5, the boxplots demonstrate the relationship between the numerical outcome variable (Popularity) and numerical categorical variable (genre of movie). To display a better representation of the relationship between genre and popularity of movies, the graph's popularity was limited to 250. The differences between each genre seem to be different. The median of the popularity of animation genres is highest within all the genres. The upper quartiles for the genres are relatively different. There are also many outliers for every genre.
+
+```{r}
+#| warning: false
+## Figure 5
+boxplot <- ggplot(movies2,
+                  aes(x = genre, y = popularity)) +
+  geom_boxplot(fill = "turquoise") +
+  labs(x = "Genre", y = "Popularity (in log)", title = "Figure 5: Boxplots of Relationship Between Each Movie Genre \nand Popularity") +
+  coord_flip() +
+  ylim(0,250)  
+boxplot
+```
+
+The trend of each genre shown in Figure 6 has a slight relationship. The relationships do not seem to be drastically different from each other. However, some genres have a positive relationship with popularity (ei. Action, Documentary), while other have a negative one (ei. Animation, War).
+
+```{r}
+#| message: false
+ggplot(movies2,
+       aes(x = female_rep, y = log_popularity)) +
+  geom_point(alpha = 0.2) +
+  labs(x = "Percentage of Female Representation in Movie Cast", y = "Popularity (in log)", title = "Figure 6: Scatterplot of Relationship Between Percentage of \nFemale Representation and Popularity for Each Movie Genre") +
+  geom_smooth(method = "lm", se = FALSE) + 
+  theme(plot.title = element_text(size = 12)) +
+  facet_wrap(~genre)
+```
+
+## 3. Regression
+
+### 3.1 Methods
+
+The components of our regression models are listed below:
+
+-   Outcome variable, y = Popularity of Movies
+-   Numerical explanatory variable, x~1~ = Percentage of Female Representation
+-   Categorical explanatory variable, x~2~ = Genre
+
+where the unit of analysis is movie, given that each row in the data set corresponds to a different movie.
+
+### 3.2 Model Results and Interpretation
+
+**Model 1** only used the outcome variable (popularity) and numerical explanatory variable (percent of female representation). This model assumes no other factors affect popularity.
+
+*log_popularity* = *b*~0~ + *b~fem~* • *fem*
+
+*log_popularity* = 2.933 - 0.008(*fem*)
+
+Since we transformed the outcome variable, the result of the formula (popularity) will be in logarithmic units.
+
+-   The intercept (*b*~0~ = 2.933) represents the popularity of a movie when the percentage of female representation is zero.
+-   The estimate for the slope for percent of female representation (*b~fem~ = -*0.008) is the associated change in popularity depending on the percentage of female representation in movies. Based on this estimate, for every one percentage point increase in the percent of female representation in a movie, there was an associated decrease in popularity of the film of, on average, 0.008 units of popularity (in log).
+
+```{r}
+## table 2 - Linear Slopes Model
+## how do I center things?
+m1 <- lm (log_popularity ~ female_rep, 
+                    data = movies2)
+```
+
+**Model 2** uses the outcome variable (popularity), the numerical explanatory variable (percent of female representation), and the categorical explanatory variable (genre).
+
+*log_popularity* = *b*~0~ + *b*~fem~ • fem + *b~Genre~* • 1~*is Genre*~ (x)
+
+*log_popularity* = 3.2 + *b~Genre~* • 1~*is Genre*~ (x)
+
+-   The intercept (*b*~0~ = 3.2) represents the popularity of a movie when the percentage of female representation is zero and the genre is action.
+-   Since the estimate for the slope for percent of female representation (*b~fem~ = 0.000*) is the associated change in popularity depending on the percentage of female representation in movies, than it indicated that female representation has no affect on popularity.
+-   The estimate for the genre are offsets (*b~Genre~*) in intercept relative to the baseline group's action genre. Each genre has its own distinct offset (ex. *b~Adventure~* = -0.041). Some genres have a offset higher (a positive coefficient) than the baseline, while others have a lower one (a negative coefficient).
+
+```{r}
+## table 3
+## p-value high = not close to stat significant
+m2 <- lm (log_popularity ~ female_rep + genre, 
+                    data = movies2)
+
+regression_table2 <- get_regression_table(m2) %>%
+  slice(1:8)
+```
+
+**Model 3** uses all three variables.
+
+*log_popularity* = *b*~0~ + *b*~fem~ • fem + *b~Genre~* • 1~*is Genre*~ (x) + *b~fem,Genre~* • f*em* • 1~*is Genre*~ (x)
+
+*log_popularity* = 2.976 + 0.015 • fem + *b~Genre~* • 1~*is Genre*~ (x) + *b~fem,Genre~* • f*em* • 1~*is Genre*~ (x)
+
+-   The intercept (*b*~0~ = 2.976) represents the popularity of a movie when the percentage of female representation is zero and the genre is action.
+-   The estimate for the slope for percent of female representation (*b~fem~ =* 0.015) is the associated change in popularity depending on the percentage of female representation in movies. Based on this estimate, for every one percentage point increase in the percent of female representation in a movie, there was an associated increase in popularity of the film of, on average, 0.015 units of popularity (in log).
+-   The estimate for the genre (*b~Genre~*) are offsets in intercept relative to the baseline group's action genre. Some genres have a offset higher, while others have a lower one.
+-   The interaction between female representation and genre are an addition to the formula. It captures how the effect of female representation on popularity, may be due to a difference in genre. The estimate (*b~fem,Genre~*) is dependent on the genre.
+
+```{r}
+## interaction
+## table 4
+m3 <- lm (log_popularity ~ female_rep*genre, 
+                    data = movies2)
+regression_table3 <- get_regression_table(m3) %>%
+  filter(row_number() %in%  c(1, 2, 3, 4, 20, 21))
+```
+
+**Model 4** uses all three variables. Only selected rows of the table are displayed to make the visualization simpler.
+
+*log_popularity* = *b*~0~ + *b*~fem~ • fem + *b*~fem2~ • fem^2^ + *b~Genre~* • 1~*is Genre*~ (x) + *b~fem,Genre~* • f*em* • 1~*is Genre*~ (x) + *b~fem2,Genre~* • *fem*^2^• 1~*is Genre*~ (x)
+
+*log_popularity* = 2.416 + 0.098 • fem - 0.003 • fem^2^ + *b~Genre~* • 1~*is Genre*~ (x) + *b~fem,Genre~* • f*em* • 1~*is Genre*~ (x) + *b~fem2,Genre~* • *fem*^2^• 1~*is Genre*~ (x)
+
+-   The intercept (*b*~0~ = 2.416) represents the popularity of a movie when the percentage of female representation is zero and the genre is action.
+-   The estimate for the slope for percent of female representation (*b*~fem~) is 0.098.
+-   The *fem^2^*variable allows for a nonlinear relationship between female reputation and genre. The estimate for the variable (*b*~fem2~) is -0.003.
+-   The estimate for the genre (*b~Genre~*) are offsets in intercept relative to the baseline group's action genre.
+-   The interaction between female representation and genre capture how the effect of female representation on popularity, may be due to a difference in genre. The estimate (*b~fem,Genre~*) is dependent on the genre.
+-   The interaction between female representation and genre, including the impact of how *fem^2^* changes depending on genre. Thus the estimate (*b~fem2,Genre~*) differs for every genre.
+
+```{r}
+## linear
+m4 <- lm(log_popularity ~ (female_rep + I(female_rep^2)) * genre,
+         data = movies2)
+
+regression_table4 <- get_regression_table(m4) %>%
+  filter(row_number() %in%  c(1, 2, 3, 4, 5, 21, 22, 38, 39))
+
+kable(regression_table4, caption = "Table 2: Table of Multiple Linear Regression Model with Interaction and Polynomial of Popularity as a Function of Female Representation and Genre" ,format = "html") %>%
+  kable_styling()
+```
+
+### 3.3 Selecting a Model
+
+To evaluate which model to use, I found the AIC score for each model (Table 6). The multiple linear regression model with an interaction and polynomial (m4) had the lowest AIC score. Since the lowest AIC score indicates the simplest model, the model was used for the analysis of the study.
+
+```{r}
+kable(AIC(m1,m2,m3,m4), caption = "Table 3: Table of AIC Scores for Each Model" ,format = "html") %>%
+  kable_styling()
+```
+
+To see whether the multiple linear regression model with an interaction and polynomial is the best suited model, the model was compared to a linear model (m5) that does not include female representation as a factor influencing popularity (Table 7).
+
+Since the AIC score of the interaction model is lower than the simple linear model excluding the female representation variable, than it can be confirmed that the interaction model (m4) is best suited (Table 8).
+
+```{r}
+## model withut female rep
+m5 <- lm (log_popularity ~ genre, 
+                    data = movies2)
+```
+
+```{r}
+kable(AIC(m4,m5), caption = "Table 4: Table of AIC Scores for Comparing Models" ,format = "html") %>%
+  kable_styling()
+```
+
+### 3.4 Residual Analysis
+
+A residual analysis was conducted to confirm the results above.
+
+```{r}
+
+m4_points <- get_regression_points(m4)
+
+ggplot(m4_points,
+       aes(x = residual)) +
+  geom_histogram(boundary = 0,
+                 binwidth = .2,
+                 color = "white",
+                 fill = "blue") +
+  labs(x = "Count", y = "Residual", title = "Figure 7: Histogram for Residuals")
+
+ggplot(m4_points,
+       aes(x = female_rep,
+           y = residual)) +
+  geom_jitter(alpha = .2) +
+  geom_hline(yintercept = 0,
+             color = "red") +
+  labs(x = "Popularity (in log)", y = "Residual", title = "Figure 8: Scatterplot for Residuals against Numerical Explanatory Variable")
+
+
+```
+
+```{r}
+## fitted residual
+ggplot(m4_points,
+       aes(x = fitted(m4),   
+           y = residual)) +
+  geom_jitter(alpha = .2) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(x = "Fitted Values", y = "Residual", title = "Figure 9: Scatterplot of Residuals against Fitted Values")
+
+```
+
+```{r}
+residual_genre <- ggplot(m4_points,
+                         aes(x = genre, y = residual)) +
+  geom_boxplot(fill = "lightyellow") +
+  labs(x = "Genre", y = "Residual", title = "Figure 10: Boxplot of Residual for each Movie Genre") +
+  coord_flip() + 
+  geom_hline(yintercept = 0, color = "red")
+residual_genre
+```
+
+The residual models were normally distributed. The histogram (Figure 7) has a normal distribution, while the scatterplots (Figures 8 and 9) have an even number of point above and below the line (indicating that the overestimation and underestimation is occurring at the same rate). Additionally, the boxplots (Figure 10) have a relatively even spread above and below the residual line. The graph demonstrates outliers, however, they seem to be distributed evenly on both sides of the residual. Based on the residual analysis, the assumptions for inference in multiple linear regression are well met.
+
+## 4. Discussion
+
+### 4.1 Conclusions
+
+To visualize the influence of each genre on the percentage of female representation and popularity, a linegraph was created in Figure 11. While most of the genres have a steady popularity level as the percentage of female representation in movies increase, there are some trends. The war movie genre decreases in popularity once the percent of female representation reaches about 20%. On the contrary, the popularity of drama movies increase when the percent of female representation reaches 50%. The other genres seem to slightly decrease in popularity when the percent of female representation reaches 50% (with an exception of Western movies, which slightly increases).
+
+I am not sure why the popularity of war movies decrease heavily when female representation increase. Though a possible explanation is war films mostly feature males since females were not permitted to join the U.S. army until 1948. This means that not a large amount of the movies categorized under war contain large percentages of female representation. The war movies had one outlier (Figure 5) in popularity, which could be a reason for the sharp decrease.
+
+Since each genre has a different trend, than it could be concluded that genre influences the relationship between percentage of female representation and popularity.
+
+```{r}
+#| warning: false
+#| message: false
+ggpredict(m4, terms = c("female_rep", "genre"), ci_level = NA) %>% 
+  plot() +
+  scale_fill_brewer(palette = "Set1") +
+  labs(x = "Pecentage of Female Representation", y = "Popularity (in log)", title = "Figure 11: Prediction Values of Popularity (in log)")
+```
+
+### 4.2 Limitations
+
+There were several limitations to this study. One limitation included the method of evaluating genre. Since the first genre was taken of every list of genres for simplification during the analysis of the study, then the other genres were disregarded. The disregarded genres may have been bettter suited for the movie film category. Furthermore, there was not an even number of movies per genre. This could have influenced the data heavily, as the interactions may have been manipulated. Another limitation is the data set itself. The data collected does not include every movie released. The scope of our study was limited based on the information we had available. Moreover, both the female percentage of crew and cast representation were combined into one categorical variable. It could be possible that if two separate analysis were conducted it could have changed the results. Also, the female percentage of cast and crew in movies was not the only way to measure female representation using the data set. The score of the Bechdel Test was included in the data set for each movie, which could have been used to analyze female representation from the movie viewer's perspective. This could be an indicator of popularity since it depends on viewership, along with other factors.
+
+### 4.3 Further Questions
+
+I would like to further analyze the percentage of female representation using other factors. These factors could include screen time of females or gender of lead roles. This would be valuable to movie viewership, ultimately affecting the popularity of movies. It would also be interesting to use another outcome variable, instead of popularity. Other factors could demonstrate likability of movies. This could include award recognition or ratings of movies. It would be interesting to analyze oscar nominated films and their relationship with female representation of the movie. Kaggle offers a data set with oscar nominated films and the gender of behind-the-scenes crew^\[3\]^*.* This would be an interesting data set to further research. This would answer the question: does female representation impact award nomination. Depending on the answer to that question it could stir some controversy in the Award Nomination world, which could be very interesting.
+
+## 5. Citations
+
+1.  Lauzen, Martha M. *Streaming Women: Representation and Employment in Original U.S. Films Released by Streaming Services in 2022.* SDSU Center for the Study of Women in Television and Film, 2023. [https://womenintvfilm.sdsu.edu/research/#:\~:text=In%202022%2C%20women%20comprised%2026,](https://womenintvfilm.sdsu.edu/research/#:~:text=In%202022%2C%20women%20comprised%2026,%2C%20and%2030%25%20of%20editors)
+
+    [%2C%20and%2030%25%20of%20editors](https://womenintvfilm.sdsu.edu/research/#:~:text=In%202022%2C%20women%20comprised%2026,%2C%20and%2030%25%20of%20editors).
+
+2.  Lauzen, Martha M. *It's a Man's (Celluloid) World: Portrayals of Female Characters in the Top Grossing U.S. Films of 2022.* SDSU Center for the Study of Women in Television and Film, 2023. [https://womenintvfilm.sdsu.edu/research/#:\~:text=In%202022%2C%20women%20comprised%2026,](https://womenintvfilm.sdsu.edu/research/#:~:text=In%202022%2C%20women%20comprised%2026,%2C%20and%2030%25%20of%20editors)
+
+    [%2C%20and%2030%25%20of%20editors](https://womenintvfilm.sdsu.edu/research/#:~:text=In%202022%2C%20women%20comprised%2026,%2C%20and%2030%25%20of%20editors).
+
+3.  Rosa, Hellen, Porto, João V., and Murayama, Laura. *Female Representation in Cinema*. Kaggle, Jun. 2022. Web. Nov. 2023. <https://www.kaggle.com/datasets/vinifm/female-representation-in-cinema>.

@@ -1,0 +1,58 @@
+---
+title: "extra info"
+format: html
+editor: visual
+embed-resources: true
+---
+
+necessary for regression
+
+good to add a predictor variable. examples
+
+```{r}
+ggplot(features2,
+       aes(x = length,
+           fill = year)) +
+  geom_density(alpha = .2,
+               color = NA)
+```
+
+talk about limmitations - other variables
+
+linear parallels slope - assumes length and rating are the same in both periods - so useless
+
+alpha + Bleng + B2yr
+
+scooped parallel - optimal movie length but still parallel - also assumes relationship same in both times
+
+alpha + B1len + B2len2 + B3year
+
+```{r}
+m2 <- lm(rating ~ length + I(length^2) + year + 
+           Action + Animation + Comedy + Drama + 
+           Documentary + Romance,
+         data = features2)
+tidy(m2)
+
+ggpredict(m2,
+          terms = c("length", "year")) |> 
+  plot()
+```
+
+Cross linear
+
+alpha + B1len + B2year + B3(len)(yr)
+
+```{r}
+m3 <- lm(rating ~ length * year + 
+           Action + Animation + Comedy + Drama + 
+           Documentary + Romance,
+         data = features2)
+tidy(m3)
+
+ggpredict(m3,
+          terms = c("length", "year")) |> 
+  plot()
+```
+
+should test and compare the 4 models
